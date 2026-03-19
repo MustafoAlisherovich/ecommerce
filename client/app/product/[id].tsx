@@ -32,13 +32,14 @@ export default function ProductDetails() {
 	const { toggleWishlist, isInWishlist } = useWishlist()
 
 	const fetchProduct = async () => {
-		setProduct(dummyProducts.find(product => product._id === id) as any)
+		const found = dummyProducts.find(product => product._id === id)
+		setProduct(found ?? null)
 		setLoading(false)
 	}
 
 	useEffect(() => {
 		fetchProduct()
-	}, [])
+	}, [id])
 
 	if (loading) {
 		return (
