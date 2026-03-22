@@ -3,18 +3,24 @@ import { Stack } from 'expo-router'
 import { CartProvider } from '@/context/cart-context'
 import { WishlistProvider } from '@/context/wishlist-context'
 import '@/global.css'
+import { ClerkProvider } from '@clerk/expo'
+import { tokenCache } from '@clerk/expo/token-cache'
 import { GestureHandlerRootView } from 'react-native-gesture-handler'
 import Toast from 'react-native-toast-message'
+
+const publishableKey = process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY!
 
 export default function RootLayout() {
 	return (
 		<GestureHandlerRootView style={{ flex: 1 }}>
-			<CartProvider>
-				<WishlistProvider>
-					<Stack screenOptions={{ headerShown: false }} />
-					<Toast />
-				</WishlistProvider>
-			</CartProvider>
+			<ClerkProvider publishableKey={publishableKey} tokenCache={tokenCache}>
+				<CartProvider>
+					<WishlistProvider>
+						<Stack screenOptions={{ headerShown: false }} />
+						<Toast />
+					</WishlistProvider>
+				</CartProvider>
+			</ClerkProvider>
 		</GestureHandlerRootView>
 	)
 }
