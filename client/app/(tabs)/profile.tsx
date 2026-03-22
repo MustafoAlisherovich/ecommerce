@@ -1,6 +1,6 @@
-import { dummyUser } from '@/assets/assets'
 import Header from '@/components/header'
 import { COLORS, PROFILE_MENU } from '@/constants'
+import { useClerk } from '@clerk/expo'
 import { Ionicons } from '@expo/vector-icons'
 import { useRouter } from 'expo-router'
 import React from 'react'
@@ -8,10 +8,11 @@ import { Image, ScrollView, Text, TouchableOpacity, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 
 export default function Profile() {
-	const { user } = { user: dummyUser }
+	const { user, signOut } = useClerk()
 	const router = useRouter()
 
 	const handleLogout = async () => {
+		await signOut()
 		router.replace('/sign-in')
 	}
 
