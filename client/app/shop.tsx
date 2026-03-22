@@ -6,13 +6,14 @@ import { Product } from '@/constants/types'
 import { Ionicons } from '@expo/vector-icons'
 import React, { useEffect, useState } from 'react'
 import {
-	ActivityIndicatorBase,
+	ActivityIndicator,
 	FlatList,
 	Text,
 	TextInput,
 	TouchableOpacity,
 	View,
 } from 'react-native'
+
 import { SafeAreaView } from 'react-native-safe-area-context'
 
 export default function Shop() {
@@ -87,7 +88,7 @@ export default function Shop() {
 
 			{loading ? (
 				<View className='flex-1 justify-center items-center'>
-					<ActivityIndicatorBase size={'large'} color={COLORS.primary} />
+					<ActivityIndicator size={'large'} color={COLORS.primary} />
 				</View>
 			) : (
 				<FlatList
@@ -102,7 +103,7 @@ export default function Shop() {
 					ListFooterComponent={
 						loadingMore ? (
 							<View className='py-4'>
-								<ActivityIndicatorBase size={'small'} color={COLORS.primary} />
+								<ActivityIndicator size={'small'} color={COLORS.primary} />
 							</View>
 						) : null
 					}
