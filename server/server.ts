@@ -3,6 +3,8 @@ import 'dotenv/config'
 import express, { Request, Response } from 'express'
 import connectDB from './config/db.js'
 import { clerkWebhook } from './controllers/webhook.js'
+import ProductRouter from './routes/product-route.js'
+import makeAdmin from './scripts/make-admin.js'
 
 const app = express()
 
@@ -20,6 +22,10 @@ const port = process.env.PORT || 3000
 app.get('/', (req: Request, res: Response) => {
 	res.send('Server is Live!')
 })
+
+app.use('/api/products', ProductRouter)
+
+await makeAdmin()
 
 app.listen(port, () => {
 	console.log(`Server is running at http://localhost:${port}`)
