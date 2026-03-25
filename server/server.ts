@@ -3,7 +3,8 @@ import 'dotenv/config'
 import express, { Request, Response } from 'express'
 import connectDB from './config/db.js'
 import { clerkWebhook } from './controllers/webhook.js'
-import ProductRouter from './routes/product-route.js'
+import CartRouter from './routes/cart.route.js'
+import ProductRouter from './routes/product.route.js'
 import makeAdmin from './scripts/make-admin.js'
 
 const app = express()
@@ -24,6 +25,7 @@ app.get('/', (req: Request, res: Response) => {
 })
 
 app.use('/api/products', ProductRouter)
+app.use('/api/cart', CartRouter)
 
 await makeAdmin()
 
