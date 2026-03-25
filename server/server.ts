@@ -4,6 +4,7 @@ import express, { Request, Response } from 'express'
 import connectDB from './config/db.js'
 import { clerkWebhook } from './controllers/webhook.js'
 import AddressRouter from './routes/address.route.js'
+import AdminRouter from './routes/admin.route.js'
 import CartRouter from './routes/cart.route.js'
 import OrderRouter from './routes/order.route.js'
 import ProductRouter from './routes/product.route.js'
@@ -30,6 +31,7 @@ app.use('/api/products', ProductRouter)
 app.use('/api/cart', CartRouter)
 app.use('/api/orders', OrderRouter)
 app.use('/api/addresses', AddressRouter)
+app.use('/api/admin', AdminRouter)
 
 await makeAdmin()
 
