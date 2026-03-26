@@ -18,7 +18,13 @@ ProductRouter.get('/', getProducts)
 ProductRouter.get('/:id', getProduct)
 
 // Create product (Admin only)
-ProductRouter.post('/', upload.array('images', 5), protect, createProduct)
+ProductRouter.post(
+	'/',
+	upload.array('images', 5),
+	protect,
+	authorize('admin'),
+	createProduct,
+)
 
 // Update Product (admin only)
 ProductRouter.put(
