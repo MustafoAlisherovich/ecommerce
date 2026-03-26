@@ -1,13 +1,12 @@
-import { dummyUser } from '@/assets/assets'
 import { COLORS } from '@/constants'
+import { useUser } from '@clerk/expo'
 import { Ionicons } from '@expo/vector-icons'
 import { Tabs, useRouter } from 'expo-router'
 import { useEffect } from 'react'
 import { ActivityIndicator, Text, TouchableOpacity, View } from 'react-native'
 
 export default function AdminLayout() {
-	const { user } = { user: dummyUser }
-	const isLoaded = true
+	const { user, isLoaded } = useUser()
 	const router = useRouter()
 
 	useEffect(() => {

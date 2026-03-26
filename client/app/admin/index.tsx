@@ -1,5 +1,6 @@
-import { dummyAdminStats } from '@/assets/assets'
 import { COLORS, getStatusColor } from '@/constants'
+import api from '@/constants/api'
+import { useAuth } from '@clerk/expo'
 import { useRouter } from 'expo-router'
 import React, { useEffect, useState } from 'react'
 import {
@@ -11,6 +12,7 @@ import {
 } from 'react-native'
 
 export default function AdminDashboard() {
+	const { getToken } = useAuth()
 	const router = useRouter()
 	const [loading, setLoading] = useState(true)
 	const [refreshing, setRefreshing] = useState(false)
@@ -23,9 +25,20 @@ export default function AdminDashboard() {
 	})
 
 	const fetchStats = async () => {
-		setStats(dummyAdminStats as any)
-		setLoading(false)
-		setRefreshing(false)
+		try {
+			const token = await getToken()
+			const { data } = await api.get('/admin/stats', {
+				headers: { Authorization: `Bearer ${token}` },
+			})
+			if (data.success) {
+				setStats(data.data)
+			}
+		} catch (error) {
+			console.error('Failed to fetch amin stats:', error)
+		} finally {
+			setLoading(false)
+			setRefreshing(false)
+		}
 	}
 
 	useEffect(() => {
@@ -59,7 +72,7 @@ export default function AdminDashboard() {
 				<View className='flex-row flex-wrap justify-between'>
 					<StatCard
 						label='Total Revenue'
-						value={`$${stats.totalRevenue.toFixed(2)}`}
+						value={`$${Number(stats?.totalRevenue ?? 0).toFixed(2)}`}
 					/>
 					<StatCard label='Total Orders' value={stats.totalOrders.toString()} />
 					<StatCard label='Products' value={stats.totalProducts.toString()} />

@@ -1,5 +1,5 @@
 import { Request, Response } from 'express'
-import cloudinary from '../config/cloudinary.js'
+import imagekit from '../config/imagekit.js'
 import Product from '../models/products.js'
 
 // Get all products
@@ -49,29 +49,29 @@ export const getProduct = async (req: Request, res: Response) => {
 // POST /api/prodcuts
 export const createProduct = async (req: Request, res: Response) => {
 	try {
-		let images = []
+		let images: { url: string; fileId: string }[] = []
 
 		// Handle file uploads
-		if (req.files && (req.files as any).length > 0) {
-			const uploadPromises = (req.files as any).map((file: any) => {
-				return new Promise((resolve, reject) => {
-					const uploadStream = cloudinary.uploader.upload_stream(
-						{
-							folder: 'ecom-app/products',
-						},
-						(error, result) => {
-							if (error) reject(error)
-							else resolve(result!.secure_url)
-						},
-					)
-					uploadStream.end(file.buffer)
-				})
-			})
+		if (req.files && Array.isArray(req.files) && req.files.length > 0) {
+			const uploadPromises = req.files.map((file: Express.Multer.File) =>
+				imagekit.upload({
+					file: file.buffer,
+					fileName: `${Date.now()}-${file.originalname}`
+						.replace(/\s+/g, '-')
+						.replace(/[^\w.-]/g, ''),
+					folder: '/ecom-app/products',
+				}),
+			)
 
-			images = await Promise.all(uploadPromises)
+			const uploadedImages = await Promise.all(uploadPromises)
+			images = uploadedImages.map(img => ({
+				url: img.url,
+				fileId: img.fileId,
+			}))
 		}
 
 		let sizes = req.body.sizes || []
+
 		if (typeof sizes === 'string') {
 			try {
 				sizes = JSON.parse(sizes)
@@ -79,29 +79,32 @@ export const createProduct = async (req: Request, res: Response) => {
 				sizes = sizes
 					.split(',')
 					.map((s: string) => s.trim())
-					.filter((s: string) => {
-						s !== ''
-					})
+					.filter((s: string) => s !== '')
 			}
 		}
 
-		// Ensure they are arrays
+		// Ensure array
 		if (!Array.isArray(sizes)) sizes = [sizes]
 
 		const productData = {
 			...req.body,
-			images: images,
+			images,
 			sizes,
 		}
 
 		if (images.length === 0) {
-			return res
-				.status(400)
-				.json({ success: false, message: 'Please upload at least one image' })
+			return res.status(400).json({
+				success: false,
+				message: 'Please upload at least one image',
+			})
 		}
 
 		const product = await Product.create(productData)
-		res.status(201).json({ success: true, data: product })
+
+		return res.status(201).json({
+			success: true,
+			data: product,
+		})
 	} catch (error: any) {
 		res.status(500).json({ success: false, message: error.message })
 	}
@@ -111,7 +114,7 @@ export const createProduct = async (req: Request, res: Response) => {
 // PUT /api/products/:id
 export const updateProduct = async (req: Request, res: Response) => {
 	try {
-		let images: string[] = []
+		let images: { url: string; fileId: string }[] = []
 
 		if (req.body.existingImages) {
 			if (Array.isArray(req.body.existingImages)) {
@@ -122,24 +125,22 @@ export const updateProduct = async (req: Request, res: Response) => {
 		}
 
 		// Handle file uploads
-		if (req.files && (req.files as any).length > 0) {
-			const uploadPromises = (req.files as any).map((file: any) => {
-				return new Promise((resolve, reject) => {
-					const uploadStream = cloudinary.uploader.upload_stream(
-						{
-							folder: 'ecom-app/products',
-						},
-						(error, result) => {
-							if (error) reject(error)
-							else resolve(result!.secure_url)
-						},
-					)
-					uploadStream.end(file.buffer)
-				})
-			})
+		if (req.files && Array.isArray(req.files) && req.files.length > 0) {
+			const uploadPromises = req.files.map((file: Express.Multer.File) =>
+				imagekit.upload({
+					file: file.buffer,
+					fileName: `${Date.now()}-${file.originalname}`
+						.replace(/\s+/g, '-')
+						.replace(/[^\w.-]/g, ''),
+					folder: '/ecom-app/products',
+				}),
+			)
 
-			const newImages = await Promise.all(uploadPromises)
-			images = [...images, ...newImages]
+			const uploadedImages = await Promise.all(uploadPromises)
+			images = uploadedImages.map(img => ({
+				url: img.url,
+				fileId: img.fileId,
+			}))
 		}
 
 		const updates = { ...req.body }
@@ -203,15 +204,13 @@ export const deleteProduct = async (req: Request, res: Response) => {
 
 		// Delete images from Cloudinary
 		if (product.images && product.images.length > 0) {
-			const deletePromises = product.images.map(imageUrl => {
-				const publicIdMatch = imageUrl.match(/\/v\d+\/(.+)\.[a-z]+$/)
-				const publicId = publicIdMatch ? publicIdMatch[1] : null
-				if (publicId) {
-					return cloudinary.uploader.destroy(publicId)
-				}
-				return Promise.resolve()
-			})
-			await Promise.all(deletePromises)
+			await Promise.all(
+				product.images.map(async (image: any) => {
+					if (image.fileId) {
+						await imagekit.deleteFile(image.fileId)
+					}
+				}),
+			)
 		}
 
 		await Product.findByIdAndDelete(req.params.id)

@@ -1,3 +1,4 @@
+import { clerkMiddleware } from '@clerk/express'
 import cors from 'cors'
 import 'dotenv/config'
 import express, { Request, Response } from 'express'
@@ -26,6 +27,7 @@ const port = process.env.PORT || 3000
 app.get('/', (req: Request, res: Response) => {
 	res.send('Server is Live!')
 })
+app.use(clerkMiddleware())
 
 app.use('/api/products', ProductRouter)
 app.use('/api/cart', CartRouter)
