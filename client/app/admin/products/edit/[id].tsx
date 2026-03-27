@@ -1,5 +1,7 @@
-import { dummyProducts } from '@/assets/assets'
 import { CATEGORIES, COLORS } from '@/constants'
+import api from '@/constants/api'
+import { showErrorToast } from '@/utils/show-error-toast'
+import { useAuth } from '@clerk/expo'
 import { Ionicons } from '@expo/vector-icons'
 import * as ImagePicker from 'expo-image-picker'
 import { useLocalSearchParams, useRouter } from 'expo-router'
@@ -21,6 +23,7 @@ import {
 import Toast from 'react-native-toast-message'
 
 export default function EditProduct() {
+	const { getToken } = useAuth()
 	const { id } = useLocalSearchParams()
 	const router = useRouter()
 
@@ -44,37 +47,35 @@ export default function EditProduct() {
 	useEffect(() => {
 		const fetchProduct = async () => {
 			try {
-				const product: any = dummyProducts.find(p => p._id === id)
-				setName(product.name)
-				setDescription(product.description || '')
-				setPrice(product.price.toString())
-				setStock(product.stock.toString())
-				setCategory(
-					typeof product.category === 'object'
-						? product.category.name
-						: product.category,
-				)
-				setIsFeatured(product.isFeatured)
-
-				if (product.sizes)
-					setSizes(
-						Array.isArray(product.sizes)
-							? product.sizes.join(', ')
-							: product.sizes,
+				const { data } = await api.get(`/products/${id}`)
+				if (data.success) {
+					const product = data.data
+					setName(product.name)
+					setDescription(product.description || '')
+					setPrice(product.price.toString())
+					setStock(product.stock.toString())
+					setCategory(
+						typeof product.category === 'object'
+							? product.category.name
+							: product.category,
 					)
+					setIsFeatured(product.isFeatured)
+					if (product.sizes)
+						setSizes(
+							Array.isArray(product.sizes)
+								? product.sizes.join(', ')
+								: product.sizes,
+						)
 
-				if (product.images && Array.isArray(product.images)) {
-					setExistingImages(product.images)
-				} else if (product.images) {
-					setExistingImages([product.images])
+					if (product.images && Array.isArray(product.images)) {
+						setExistingImages(product.images)
+					} else if (product.images) {
+						setExistingImages([product.images])
+					}
 				}
-			} catch (error: any) {
+			} catch (error: unknown) {
 				console.error('Failed to fetch product:', error)
-				Toast.show({
-					type: 'error',
-					text1: 'Failed to Fetch Product',
-					text2: error.response?.data?.message || 'Something went wrong',
-				})
+				showErrorToast(error, 'Failed to fetch product')
 				router.back()
 			} finally {
 				setLoading(false)
@@ -122,6 +123,7 @@ export default function EditProduct() {
 
 		try {
 			setSubmitting(true)
+			const token = await getToken()
 			const formData = new FormData()
 
 			formData.append('name', name)
@@ -154,7 +156,20 @@ export default function EditProduct() {
 					} as any)
 				}
 			}
-			router.back()
+			const { data } = await api.put(`/products/${id}`, formData, {
+				headers: {
+					Authorization: `Bearer ${token}`,
+					'Content-type': 'multipart/form-data',
+				},
+			})
+			if (data.success) {
+				Toast.show({
+					type: 'success',
+					text1: 'Success',
+					text2: 'Product updated successfully',
+				})
+				router.replace('/admin/products')
+			}
 		} catch (error: any) {
 			console.error('Failed to update product:', error)
 			Toast.show({

@@ -8,7 +8,7 @@ export const getCart = async (req: Request, res: Response) => {
 	try {
 		let cart = await Cart.findOne({ user: req.user._id }).populate(
 			'items.product',
-			'name images, price stock',
+			'name images price stock',
 		)
 
 		if (!cart) {
@@ -155,6 +155,7 @@ export const clearCart = async (req: Request, res: Response) => {
 			cart.totalAmount = 0
 			await cart.save()
 		}
+		res.json({ success: true, message: 'Cart cleared' })
 	} catch (error: any) {
 		res.status(500).json({ success: false, message: error.message })
 	}

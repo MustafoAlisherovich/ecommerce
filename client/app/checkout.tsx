@@ -1,8 +1,10 @@
-import { dummyAddress } from '@/assets/assets'
 import Header from '@/components/header'
 import { COLORS } from '@/constants'
+import api from '@/constants/api'
 import { Address } from '@/constants/types'
 import { useCart } from '@/context/cart-context'
+import { showErrorToast } from '@/utils/show-error-toast'
+import { useAuth } from '@clerk/expo'
 import { Ionicons } from '@expo/vector-icons'
 import { useRouter } from 'expo-router'
 import React, { useEffect, useState } from 'react'
@@ -12,7 +14,8 @@ import { SafeAreaView } from 'react-native-safe-area-context'
 import Toast from 'react-native-toast-message'
 
 export default function Checkout() {
-	const { cartTotal } = useCart()
+	const { getToken } = useAuth()
+	const { cartTotal, clearCart } = useCart()
 	const router = useRouter()
 
 	const [loading, setLoading] = useState(false)
@@ -26,13 +29,23 @@ export default function Checkout() {
 	const total = cartTotal + shipping + tax
 
 	const fetchAddress = async () => {
-		const addrList = dummyAddress
-		if (addrList.length > 0) {
-			// Find default or first
-			const def = addrList.find(a => a.isDefault) || addrList[0]
-			setSelectedAdress(def as Address)
+		try {
+			const token = await getToken()
+			const { data } = await api.get('/addresses', {
+				headers: { Authorization: `Bearer ${token}` },
+			})
+			const addrList = data.data
+			if (addrList.length > 0) {
+				// Find default or first
+				const def = addrList.find((a: Address) => a.isDefault) || addrList[0]
+				setSelectedAdress(def)
+			}
+		} catch (error) {
+			console.error('Error fetching checkout data:', error)
+			showErrorToast(error, 'Failed to lead checkout information')
+		} finally {
+			setPageLoading(false)
 		}
-		setPageLoading(false)
 	}
 
 	const handlePlaceOrder = async () => {
@@ -53,7 +66,33 @@ export default function Checkout() {
 			})
 
 		// Cash on Delivery
-		router.replace('/orders')
+		setLoading(true)
+		try {
+			const payload = {
+				shippingAddress: selectedAddress,
+				notes: 'Placed via App',
+				paymentMethod: 'Cash',
+			}
+			const token = await getToken()
+			const { data } = await api.post('/orders', payload, {
+				headers: { Authorization: `Bearer ${token}` },
+			})
+			console.log(data)
+			if (data.success) {
+				await clearCart()
+				Toast.show({
+					type: 'success',
+					text1: 'Order Placed',
+					text2: 'Your order has been placed successfully!',
+				})
+				router.replace('/orders')
+			}
+		} catch (error: unknown) {
+			console.log(error)
+			showErrorToast(error, 'Failed to Place Order')
+		} finally {
+			setLoading(false)
+		}
 	}
 
 	useEffect(() => {

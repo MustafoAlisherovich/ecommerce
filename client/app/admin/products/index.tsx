@@ -1,5 +1,6 @@
 import { COLORS } from '@/constants'
 import api from '@/constants/api'
+import { showErrorToast } from '@/utils/show-error-toast'
 import { useAuth } from '@clerk/expo'
 import { Ionicons } from '@expo/vector-icons'
 import { useRouter } from 'expo-router'
@@ -66,13 +67,9 @@ export default function AdminProducts() {
 				})
 				fetchProducts()
 			}
-		} catch (error: any) {
+		} catch (error: unknown) {
 			console.error('Failed to delete product:', error)
-			Toast.show({
-				type: 'error',
-				text1: 'Failed to delete Product',
-				text2: error.response?.data?.message || 'Something went wrong',
-			})
+			showErrorToast(error, 'Failed to delete product')
 		}
 	}
 

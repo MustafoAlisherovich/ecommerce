@@ -1,7 +1,9 @@
-import { dummyOrders, formatDate } from '@/assets/assets'
+import { formatDate } from '@/assets/assets'
 import Header from '@/components/header'
 import { COLORS, getStatusColor } from '@/constants'
+import api from '@/constants/api'
 import type { Order } from '@/constants/types'
+import { useAuth } from '@clerk/expo'
 import { Ionicons } from '@expo/vector-icons'
 import { useRouter } from 'expo-router'
 import React, { useEffect, useState } from 'react'
@@ -20,10 +22,20 @@ export default function Orders() {
 	const router = useRouter()
 	const [orders, setOrders] = useState<Order[]>([])
 	const [loading, setLoading] = useState(true)
+	const { getToken } = useAuth()
 
 	const fetchOrders = async () => {
-		setOrders(dummyOrders as any[])
-		setLoading(false)
+		try {
+			const token = await getToken()
+			const { data } = await api.get('/orders', {
+				headers: { Authorization: `Bearer ${token}` },
+			})
+			setOrders(data.data)
+		} catch (error) {
+			console.error('Error fetching orders:', error)
+		} finally {
+			setLoading(false)
+		}
 	}
 
 	useEffect(() => {
@@ -114,7 +126,7 @@ export default function Orders() {
 										>
 											{image ? (
 												<Image
-													source={{ uri: image }}
+													source={{ uri: image.url }}
 													className='w-12 h-12 rounded-md'
 													resizeMode='cover'
 												/>

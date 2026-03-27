@@ -1,4 +1,5 @@
 import { COLORS } from '@/constants'
+import { showErrorToast } from '@/utils/show-error-toast'
 import { useSignUp } from '@clerk/expo/legacy'
 import { Ionicons } from '@expo/vector-icons'
 import { Link, useRouter } from 'expo-router'
@@ -51,12 +52,8 @@ export default function SignUpScreen() {
 			})
 
 			setPendingVerification(true)
-		} catch (err: any) {
-			Toast.show({
-				type: 'error',
-				text1: 'Failed to Sign Up',
-				text2: err?.errors?.[0]?.message ?? 'Something went wrong',
-			})
+		} catch (err: unknown) {
+			showErrorToast(err, 'Failed to Sign Up')
 		} finally {
 			setLoading(false)
 		}
@@ -87,12 +84,8 @@ export default function SignUpScreen() {
 					text1: 'Verification incomplete',
 				})
 			}
-		} catch (err: any) {
-			Toast.show({
-				type: 'error',
-				text1: 'Failed to Verify',
-				text2: err?.errors?.[0]?.message ?? 'Invalid code',
-			})
+		} catch (err: unknown) {
+			showErrorToast(err, 'Failed to Verify')
 		} finally {
 			setLoading(false)
 		}

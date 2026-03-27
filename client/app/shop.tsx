@@ -1,7 +1,7 @@
-import { dummyProducts } from '@/assets/assets'
 import Header from '@/components/header'
 import ProductCard from '@/components/product-card'
 import { COLORS } from '@/constants'
+import api from '@/constants/api'
 import { Product } from '@/constants/types'
 import { Ionicons } from '@expo/vector-icons'
 import React, { useEffect, useState } from 'react'
@@ -30,16 +30,16 @@ export default function Shop() {
 			setLoadingMore(true)
 		}
 		try {
-			const start = (pageNumber - 1) * 10
-			const end = start + 10
-			const paginatedData = dummyProducts.slice(start, end)
-			if (pageNumber === 1) {
-				setProducts(paginatedData)
-			} else {
-				setProducts(prev => [...prev, ...paginatedData])
-			}
+			const queryParams = { page: pageNumber, limit: 10 }
 
-			setHasMore(end < dummyProducts.length)
+			const { data } = await api.get('/products', { params: queryParams })
+
+			if (pageNumber === 1) {
+				setProducts(data.data)
+			} else {
+				setProducts(prev => [...prev, ...data.data])
+			}
+			setHasMore(data.pagination.page < data.pagination.pages)
 			setPage(pageNumber)
 		} catch (error) {
 			console.error('Pagination error:', error)

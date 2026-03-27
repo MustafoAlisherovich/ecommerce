@@ -1,7 +1,8 @@
-import { dummyOrders } from '@/assets/assets'
 import Header from '@/components/header'
 import { COLORS } from '@/constants'
+import api from '@/constants/api'
 import type { Order, Product } from '@/constants/types'
+import { useAuth } from '@clerk/expo'
 import { Ionicons } from '@expo/vector-icons'
 import { useLocalSearchParams } from 'expo-router'
 import React, { useEffect, useState } from 'react'
@@ -12,10 +13,20 @@ export default function OrderDetails() {
 	const { id } = useLocalSearchParams()
 	const [order, setOrder] = useState<Order | null>(null)
 	const [loading, setLoading] = useState(true)
+	const { getToken } = useAuth()
 
 	const fetchOrderDetails = async () => {
-		setOrder(dummyOrders.find(order => order._id === id) as any)
-		setLoading(false)
+		try {
+			const token = await getToken()
+			const { data } = await api.get(`/orders/${id}`, {
+				headers: { Authorization: `Bearer ${token}` },
+			})
+			setOrder(data.data)
+		} catch (error) {
+			console.error('Error fetching order details:', error)
+		} finally {
+			setLoading(false)
+		}
 	}
 
 	useEffect(() => {
@@ -123,7 +134,7 @@ export default function OrderDetails() {
 							>
 								{image && (
 									<Image
-										source={{ uri: image }}
+										source={{ uri: image.url }}
 										className='w-16 h-16 rounded-lg bg-gray-100'
 										resizeMode='contain'
 									/>

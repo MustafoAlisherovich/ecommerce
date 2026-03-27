@@ -52,6 +52,8 @@ export const getOrder = async (req: Request, res: Response) => {
 export const createOrder = async (req: Request, res: Response) => {
 	try {
 		const { shippingAddress, notes } = req.body
+		const paymentMethod = req.body.paymentMethod?.toLowerCase() || 'cash'
+
 		const cart = await Cart.findOne({ user: req.user._id }).populate(
 			'items.product',
 		)
@@ -60,10 +62,11 @@ export const createOrder = async (req: Request, res: Response) => {
 			return res.status(400).json({ success: false, message: 'Cart is empty' })
 		}
 
-		// Verify stock and prepare order items
 		const orderItems = []
+
 		for (const item of cart.items) {
 			const product = await Product.findById(item.product._id)
+
 			if (!product || product.stock < item.quantity) {
 				return res.status(400).json({
 					success: false,
@@ -76,8 +79,9 @@ export const createOrder = async (req: Request, res: Response) => {
 				name: (item.product as any).name,
 				quantity: item.quantity,
 				size: item.size,
+				price: product.price,
 			})
-			// Reduce stock
+
 			product.stock -= item.quantity
 			await product.save()
 		}
@@ -85,13 +89,13 @@ export const createOrder = async (req: Request, res: Response) => {
 		const subtotal = cart.totalAmount
 		const shippingCost = 2
 		const tax = 0
-		const totalAmount = subtotal + tax
+		const totalAmount = subtotal + shippingCost + tax
 
 		const order = await Order.create({
 			user: req.user._id,
 			items: orderItems,
 			shippingAddress,
-			paymentMethod: req.body.paymentMethod || 'cash',
+			paymentMethod,
 			paymentStatus: 'pending',
 			subtotal,
 			shippingCost,
@@ -102,7 +106,7 @@ export const createOrder = async (req: Request, res: Response) => {
 			orderNumber: 'ORD-' + Date.now(),
 		})
 
-		if (req.body.paymentMethod !== 'stripe') {
+		if (paymentMethod !== 'stripe') {
 			cart.items = []
 			cart.totalAmount = 0
 			await cart.save()

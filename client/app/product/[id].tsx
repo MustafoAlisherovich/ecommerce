@@ -1,8 +1,9 @@
-import { dummyProducts } from '@/assets/assets'
 import { COLORS } from '@/constants'
+import api from '@/constants/api'
 import { Product } from '@/constants/types'
 import { useCart } from '@/context/cart-context'
 import { useWishlist } from '@/context/wishlist-context'
+import { showErrorToast } from '@/utils/show-error-toast'
 import { Ionicons } from '@expo/vector-icons'
 import { useLocalSearchParams, useRouter } from 'expo-router'
 import React, { useEffect, useState } from 'react'
@@ -28,13 +29,18 @@ export default function ProductDetails() {
 	const [selectedSize, setSelectedSize] = useState<string | null>(null)
 	const [activeImageIndex, setActiveImageIndex] = useState(0)
 
-	const { addToCart, cartItems, itemCount } = useCart()
+	const { addToCart, itemCount } = useCart()
 	const { toggleWishlist, isInWishlist } = useWishlist()
 
 	const fetchProduct = async () => {
-		const found = dummyProducts.find(product => product._id === id)
-		setProduct(found ?? null)
-		setLoading(false)
+		try {
+			const { data } = await api.get(`/products/${id}`)
+			setProduct(data.data)
+		} catch (error: unknown) {
+			showErrorToast(error, 'Failed to fetch product')
+		} finally {
+			setLoading(false)
+		}
 	}
 
 	useEffect(() => {
@@ -92,7 +98,7 @@ export default function ProductDetails() {
 						{product.images?.map((img, index) => (
 							<Image
 								key={index}
-								source={{ uri: img }}
+								source={{ uri: img.url }}
 								style={{ width: width, height: 450 }}
 								resizeMode='cover'
 							/>

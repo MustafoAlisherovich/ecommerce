@@ -1,9 +1,11 @@
-import { dummyOrders, dummyUser } from '@/assets/assets'
 import { COLORS, getStatusColor } from '@/constants'
+import api from '@/constants/api'
+import { useAuth } from '@clerk/expo'
 import { Ionicons } from '@expo/vector-icons'
 import React, { useEffect, useState } from 'react'
 import {
 	ActivityIndicator,
+	Alert,
 	FlatList,
 	Modal,
 	RefreshControl,
@@ -15,6 +17,7 @@ import {
 } from 'react-native'
 
 export default function AdminOrders() {
+	const { getToken } = useAuth()
 	const [loading, setLoading] = useState(true)
 	const [refreshing, setRefreshing] = useState(false)
 	const [orders, setOrders] = useState([])
@@ -27,14 +30,21 @@ export default function AdminOrders() {
 	const STATUSES = ['placed', 'processing', 'shipped', 'delivered', 'cancelled']
 
 	const fetchOrders = async () => {
-		setOrders(
-			dummyOrders.map((order: any) => ({
-				...order,
-				user: dummyUser,
-			})) as any,
-		)
-		setLoading(false)
-		setRefreshing(false)
+		try {
+			const token = await getToken()
+			const { data } = await api.get('/orders/admin/all', {
+				headers: { Authorization: `Bearer ${token}` },
+			})
+			if (data.success) {
+				setOrders(data.data)
+			}
+		} catch (error) {
+			console.error('Failed to fetch orders:', error)
+			Alert.alert('Error', 'Failed to load orders')
+		} finally {
+			setLoading(false)
+			setRefreshing(false)
+		}
 	}
 
 	useEffect(() => {
@@ -53,15 +63,28 @@ export default function AdminOrders() {
 
 	const updateStatus = async (newStatus: string) => {
 		if (!selectedOrder) return
-		setOrders(
-			orders.map((order: any) =>
-				order._id === selectedOrder._id
-					? { ...order, orderStatus: newStatus }
-					: order,
-			) as any,
-		)
-		setStatusModalVisible(false)
-		setUpdating(false)
+		try {
+			const token = await getToken()
+			const { data } = await api.put(
+				`/orders/${selectedOrder._id}/status`,
+				{
+					orderStatus: newStatus,
+				},
+				{ headers: { Authorization: `Bearer ${token}` } },
+			)
+
+			if (data.success) {
+				Alert.alert('Sucess', 'Order status updated')
+				setStatusModalVisible(false)
+				fetchOrders()
+			}
+		} catch (error) {
+			console.error('Failed to update status:', error)
+			Alert.alert('Error', 'Failed to update status')
+		} finally {
+			setLoading(false)
+			setUpdating(false)
+		}
 	}
 
 	if (loading && !refreshing) {
